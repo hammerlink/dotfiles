@@ -3,4 +3,8 @@ if status is-interactive
     atuin init fish | source
     starship init fish | source
     bind \cl accept-autosuggestion
+
+    if test -s $HOME/hammer.fish
+        source $HOME/hammer.fish
+    end
 end
