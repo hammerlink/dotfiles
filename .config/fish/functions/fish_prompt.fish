@@ -132,3 +132,7 @@ function fish_prompt
     echo -n '$ '
     set_color normal
 end
+
+function fish_right_prompt
+    echo (math $CMD_DURATION / 1000) s
+end
