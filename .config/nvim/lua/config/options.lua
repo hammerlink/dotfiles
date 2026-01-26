@@ -9,3 +9,5 @@ opt.foldenable = false
 opt.foldexpr = "0"
 opt.foldlevel = 0
 opt.foldlevelstart = 0
+
+vim.g.snacks_animate = false
