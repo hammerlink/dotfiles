@@ -4,7 +4,10 @@ if status is-interactive
     starship init fish | source
     bind \cl accept-autosuggestion
 
+    set -gx PATH $HOME/.cargo/bin $PATH
+
     if test -s $HOME/hammer.fish
         source $HOME/hammer.fish
     end
+    eval (zellij setup --generate-auto-start fish | string collect)
 end
