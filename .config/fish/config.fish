@@ -9,4 +9,9 @@ if status is-interactive
         source $HOME/hammer.fish
     end
     eval (zellij setup --generate-auto-start fish | string collect)
+
+    function nv
+        echo -ne "\033]0;nvim ("(basename (pwd))")\007"
+        nvim $argv
+    end
 end
