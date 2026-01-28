@@ -11,3 +11,6 @@ opt.foldlevel = 0
 opt.foldlevelstart = 0
 
 vim.g.snacks_animate = false
+
+vim.o.exrc = true
+vim.o.secure = true
