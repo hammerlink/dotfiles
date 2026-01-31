@@ -1,2 +1,6 @@
 [window]
-  decorations = "none"
+decorations = "none"
+
+[font]
+normal = { family = "FiraCode Nerd Font Mono", style = "Regular" }
+size = 12
