@@ -1,8 +1,4 @@
 if status is-interactive
-    # Commands to run in interactive sessions can go here
-    atuin init fish | source
-    # starship init fish | source
-
     set -gx PATH $HOME/.cargo/bin $PATH
 
     if test -s $HOME/hammer.fish
@@ -14,4 +10,8 @@ if status is-interactive
         echo -ne "\033]0;nvim ("(basename (pwd))")\007"
         nvim $argv
     end
+
+    # Commands to run in interactive sessions can go here
+    # starship init fish | source
+    atuin init fish | source
 end
