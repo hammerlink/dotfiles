@@ -14,4 +14,7 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
     # starship init fish | source
     atuin init fish | source
+
+    # set editor to use with Alt + e in cli mode
+    set -g EDITOR nvim
 end
