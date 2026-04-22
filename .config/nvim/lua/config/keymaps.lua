@@ -4,6 +4,7 @@
 local map = LazyVim.safe_keymap_set
 
 map("i", "jk", "<ESC>")
+vim.keymap.set("x", "p", '"_dP', { desc = "Paste without overwriting yank" })
 
 vim.keymap.set("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
 vim.keymap.set("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "nvimtree focus window" })
