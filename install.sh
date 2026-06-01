@@ -79,6 +79,13 @@ else
   curl -fsSL https://opencode.ai/install | bash
 fi
 
+if command -v nix &>/dev/null; then
+    echo "skip: nix already installed"
+else
+    echo "==> Installing Nix (single-user)"
+    curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+fi
+
 FISH_PATH="$(which fish)"
 if [ "$SHELL" = "$FISH_PATH" ]; then
     echo "skip: fish is already the default shell"
