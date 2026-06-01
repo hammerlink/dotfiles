@@ -21,3 +21,5 @@ if status is-interactive
     # set editor to use with Alt + e in cli mode
     set -g EDITOR nvim
 end
+
+fish_vi_key_bindings
