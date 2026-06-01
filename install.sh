@@ -57,8 +57,8 @@ if command -v node &>/dev/null; then
 else
     echo "==> Installing latest Node.js via fnm"
     eval "$(fnm env)"
-    fnm install latest
-    fnm default latest
+    fnm install --lts
+    fnm default lts-latest
 fi
 
 if command -v opencode &>/dev/null; then
