@@ -52,6 +52,15 @@ else
   cargo install fnm
 fi
 
+if command -v node &>/dev/null; then
+    echo "skip: node already installed"
+else
+    echo "==> Installing latest Node.js via fnm"
+    eval "$(fnm env)"
+    fnm install latest
+    fnm default latest
+fi
+
 if command -v opencode &>/dev/null; then
   echo "skip: opencode already installed"
 else
