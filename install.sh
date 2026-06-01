@@ -24,6 +24,9 @@ cargo install atuin
 echo "==> Installing zellij"
 cargo install zellij
 
+echo "==> Installing fnm (Fast Node Manager)"
+cargo install fnm
+
 echo ""
 echo "Done. Make sure ~/.local/bin is in your PATH for nvim."
 echo "To set fish as your default shell: chsh -s \$(which fish)"
