@@ -89,6 +89,14 @@ else
     curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
 fi
 
+if git config --global user.email &>/dev/null && git config --global user.name &>/dev/null; then
+    echo "skip: git already configured"
+else
+    echo "==> Configuring git"
+    git config --global user.email "hendrik.hamerlinck@hammernet.be"
+    git config --global user.name "Hendrik Hamerlinck"
+fi
+
 FISH_PATH="$(which fish)"
 if [ "$SHELL" = "$FISH_PATH" ]; then
     echo "skip: fish is already the default shell"
