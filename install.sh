@@ -2,12 +2,16 @@
 
 set -e
 
-if command -v fish &>/dev/null; then
-  echo "skip: fish already installed"
+PACKAGES=()
+command -v fish   &>/dev/null || PACKAGES+=(fish)
+command -v unzip  &>/dev/null || PACKAGES+=(unzip)
+
+if [ ${#PACKAGES[@]} -eq 0 ]; then
+    echo "skip: fish, unzip already installed"
 else
-  echo "==> Installing fish"
-  sudo apt-get update -q
-  sudo apt-get install -y fish
+    echo "==> Installing: ${PACKAGES[*]}"
+    sudo apt-get update -q
+    sudo apt-get install -y "${PACKAGES[@]}"
 fi
 
 mkdir -p "$HOME/.local/bin"
@@ -29,6 +33,13 @@ else
   echo "==> Installing Rust"
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   source "$HOME/.cargo/env"
+fi
+
+if command -v rg &>/dev/null; then
+  echo "skip: ripgrep already installed"
+else
+  echo "==> Installing ripgrep"
+  cargo install ripgrep
 fi
 
 if command -v atuin &>/dev/null; then
