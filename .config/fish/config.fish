@@ -2,7 +2,7 @@ if status is-interactive
     set -gx PATH $HOME/.cargo/bin $PATH
 
     # fnm should be installed via cargo (cargo install fnm)
-    fnm env --shell fish | source
+    fnm env --use-on-cd --shell fish | source
 
     if test -s $HOME/hammer.fish
         source $HOME/hammer.fish
