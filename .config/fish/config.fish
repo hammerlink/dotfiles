@@ -1,4 +1,5 @@
 if status is-interactive
+    fish_add_path $HOME/.local/bin
     set -gx PATH $HOME/.cargo/bin $PATH
 
     # fnm should be installed via cargo (cargo install fnm)
