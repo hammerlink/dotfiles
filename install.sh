@@ -3,11 +3,14 @@
 set -e
 
 PACKAGES=()
-command -v fish   &>/dev/null || PACKAGES+=(fish)
-command -v unzip  &>/dev/null || PACKAGES+=(unzip)
+command -v fish        &>/dev/null || PACKAGES+=(fish)
+command -v unzip       &>/dev/null || PACKAGES+=(unzip)
+command -v python3     &>/dev/null || PACKAGES+=(python3)
+python3 -m pip --version &>/dev/null 2>&1 || PACKAGES+=(python3-pip)
+python3 -m venv --help  &>/dev/null 2>&1 || PACKAGES+=(python3-venv)
 
 if [ ${#PACKAGES[@]} -eq 0 ]; then
-    echo "skip: fish, unzip already installed"
+    echo "skip: fish, unzip, python3, python3-pip already installed"
 else
     echo "==> Installing: ${PACKAGES[*]}"
     sudo apt-get update -q
