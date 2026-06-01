@@ -79,6 +79,14 @@ else
   curl -fsSL https://opencode.ai/install | bash
 fi
 
+FISH_PATH="$(which fish)"
+if [ "$SHELL" = "$FISH_PATH" ]; then
+    echo "skip: fish is already the default shell"
+else
+    echo "==> Setting fish as default shell"
+    grep -qxF "$FISH_PATH" /etc/shells || echo "$FISH_PATH" | sudo tee -a /etc/shells
+    chsh -s "$FISH_PATH"
+fi
+
 echo ""
 echo "Done. Make sure ~/.local/bin is in your PATH for nvim."
-echo "To set fish as your default shell: chsh -s \$(which fish)"
