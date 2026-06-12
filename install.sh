@@ -3,18 +3,18 @@
 set -e
 
 PACKAGES=()
-command -v fish        &>/dev/null || PACKAGES+=(fish)
-command -v unzip       &>/dev/null || PACKAGES+=(unzip)
-command -v python3     &>/dev/null || PACKAGES+=(python3)
+command -v fish &>/dev/null || PACKAGES+=(fish)
+command -v unzip &>/dev/null || PACKAGES+=(unzip)
+command -v python3 &>/dev/null || PACKAGES+=(python3)
 python3 -m pip --version &>/dev/null 2>&1 || PACKAGES+=(python3-pip)
-python3 -m venv --help  &>/dev/null 2>&1 || PACKAGES+=(python3-venv)
+python3 -m venv --help &>/dev/null 2>&1 || PACKAGES+=(python3-venv)
 
 if [ ${#PACKAGES[@]} -eq 0 ]; then
-    echo "skip: fish, unzip, python3, python3-pip already installed"
+  echo "skip: fish, unzip, python3, python3-pip already installed"
 else
-    echo "==> Installing: ${PACKAGES[*]}"
-    sudo apt-get update -q
-    sudo apt-get install -y "${PACKAGES[@]}"
+  echo "==> Installing: ${PACKAGES[*]}"
+  sudo apt-get update -q
+  sudo apt-get install -y "${PACKAGES[@]}"
 fi
 
 mkdir -p "$HOME/.local/bin"
@@ -42,21 +42,21 @@ if command -v rg &>/dev/null; then
   echo "skip: ripgrep already installed"
 else
   echo "==> Installing ripgrep"
-  cargo install ripgrep
+  cargo install --locked ripgrep
 fi
 
 if command -v atuin &>/dev/null; then
   echo "skip: atuin already installed"
 else
   echo "==> Installing atuin"
-  cargo install atuin
+  cargo install --locked atuin
 fi
 
 if command -v zellij &>/dev/null; then
   echo "skip: zellij already installed"
 else
   echo "==> Installing zellij"
-  cargo install zellij
+  cargo install --locked zellij
 fi
 
 if command -v fnm &>/dev/null; then
@@ -67,12 +67,12 @@ else
 fi
 
 if command -v node &>/dev/null; then
-    echo "skip: node already installed"
+  echo "skip: node already installed"
 else
-    echo "==> Installing latest Node.js via fnm"
-    eval "$(fnm env)"
-    fnm install --lts
-    fnm default lts-latest
+  echo "==> Installing latest Node.js via fnm"
+  eval "$(fnm env)"
+  fnm install --lts
+  fnm default lts-latest
 fi
 
 if command -v opencode &>/dev/null; then
@@ -83,27 +83,27 @@ else
 fi
 
 if command -v nix &>/dev/null; then
-    echo "skip: nix already installed"
+  echo "skip: nix already installed"
 else
-    echo "==> Installing Nix (single-user)"
-    curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+  echo "==> Installing Nix (single-user)"
+  curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
 fi
 
 if git config --global user.email &>/dev/null && git config --global user.name &>/dev/null; then
-    echo "skip: git already configured"
+  echo "skip: git already configured"
 else
-    echo "==> Configuring git"
-    git config --global user.email "hendrik.hamerlinck@hammernet.be"
-    git config --global user.name "Hendrik Hamerlinck"
+  echo "==> Configuring git"
+  git config --global user.email "hendrik.hamerlinck@hammernet.be"
+  git config --global user.name "Hendrik Hamerlinck"
 fi
 
 FISH_PATH="$(which fish)"
 if [ "$SHELL" = "$FISH_PATH" ]; then
-    echo "skip: fish is already the default shell"
+  echo "skip: fish is already the default shell"
 else
-    echo "==> Setting fish as default shell"
-    grep -qxF "$FISH_PATH" /etc/shells || echo "$FISH_PATH" | sudo tee -a /etc/shells
-    chsh -s "$FISH_PATH"
+  echo "==> Setting fish as default shell"
+  grep -qxF "$FISH_PATH" /etc/shells || echo "$FISH_PATH" | sudo tee -a /etc/shells
+  chsh -s "$FISH_PATH"
 fi
 
 echo ""
