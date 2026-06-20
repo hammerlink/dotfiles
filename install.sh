@@ -86,7 +86,7 @@ if command -v nix &>/dev/null; then
   echo "skip: nix already installed"
 else
   echo "==> Installing Nix (single-user)"
-  curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+  curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install | sh -s -- --no-daemon
 fi
 
 if git config --global user.email &>/dev/null && git config --global user.name &>/dev/null; then
