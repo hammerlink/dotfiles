@@ -22,4 +22,17 @@ if status is-interactive
     set -g EDITOR nvim
 end
 
+# pnpm
+if test -d "$HOME/.local/share/pnpm"
+    set -gx PNPM_HOME "$HOME/.local/share/pnpm"
+    if not string match -q -- $PNPM_HOME $PATH
+        set -gx PATH "$PNPM_HOME" $PATH
+    end
+end
+
+# opencode
+if test -d "$HOME/.opencode/bin"
+    fish_add_path $HOME/.opencode/bin
+end
+
 fish_vi_key_bindings
