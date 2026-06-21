@@ -108,3 +108,6 @@ fi
 
 echo ""
 echo "Done. Make sure ~/.local/bin is in your PATH for nvim."
+echo ""
+echo "==> Linking dotfiles"
+bash "$(dirname "$0")/link.sh"
