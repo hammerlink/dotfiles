@@ -20,11 +20,6 @@ if status is-interactive
 
     # set editor to use with Alt + e in cli mode
     set -g EDITOR nvim
-
-
-    set fish_cursor_default block
-    set fish_cursor_insert line
-    set fish_cursor_replace_one underscore
 end
 
 # pnpm
