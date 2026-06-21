@@ -9,10 +9,15 @@ for src in "$DOTFILES_CONFIG"/*; do
     name="$(basename "$src")"
     dest="$TARGET_CONFIG/$name"
 
-    if [ -L "$dest" ]; then
-        echo "skip (already linked): $dest"
-    elif [ -e "$dest" ]; then
-        echo "skip (exists, not a symlink): $dest"
+    if [ -L "$dest" ] || [ -e "$dest" ]; then
+        read -r -p "already exists: $dest — delete and relink? [y/N] " answer
+        if [[ "$answer" =~ ^[Yy]$ ]]; then
+            rm -rf "$dest"
+            ln -s "$src" "$dest"
+            echo "linked: $dest -> $src"
+        else
+            echo "skipped: $dest"
+        fi
     else
         ln -s "$src" "$dest"
         echo "linked: $dest -> $src"
