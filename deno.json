@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "install": "deno run -A ./install.ts"
+    "install": "deno run -A ./install.ts",
+    "update-nvim": "deno run -A ./update-nvim.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
