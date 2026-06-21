@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-all
 
-import { dirname, fromFileUrl, join } from "jsr:@std/path";
+import { dirname, fromFileUrl, join } from "@std/path";
 
 const HOME = Deno.env.get("HOME")!;
 const SCRIPT_DIR = dirname(fromFileUrl(import.meta.url));
