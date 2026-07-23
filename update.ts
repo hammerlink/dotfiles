@@ -199,6 +199,24 @@ const updaters: {
     },
   },
   {
+    name: "deno",
+    check: async (): Promise<CheckResult> => {
+      const out = await $`deno --version`.text().catch(() => "");
+      const installed = out.match(/deno ([\d.]+)/)?.[1] ?? "";
+      if (!installed) return { upToDate: false };
+      const latest = await githubLatest("denoland/deno");
+      return {
+        upToDate: stripV(installed) === stripV(latest),
+        installed,
+        latest,
+      };
+    },
+    update: async () => {
+      console.log("==> Updating Deno");
+      await $`deno upgrade`;
+    },
+  },
+  {
     name: "opencode",
     check: async (): Promise<CheckResult> => {
       const out = await $`opencode --version`.text().catch(() => "");
