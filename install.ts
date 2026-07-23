@@ -137,19 +137,34 @@ extraPaths.push(join(HOME, ".cargo", "bin"));
 
 // ── cargo tools ──────────────────────────────────────────────────────────────
 
-const cargoTools: [string, string, string[]][] = [
-  ["rg", "ripgrep", ["--locked"]],
-  ["atuin", "atuin", ["--locked"]],
-  ["zellij", "zellij", ["--locked"]],
-  ["fnm", "fnm", []],
+const cargoInstallTools: [string, string, string[]][] = [
+  ["cargo-binstall", "cargo-binstall", ["--locked"]],
 ];
 
-for (const [cmd, pkg, flags] of cargoTools) {
+for (const [cmd, pkg, flags] of cargoInstallTools) {
   if (await installed(cmd)) {
     console.log(`skip: ${cmd} already installed`);
   } else {
     console.log(`==> Installing ${cmd}`);
     await run("cargo", ["install", ...flags, pkg]);
+  }
+}
+
+const cargoBinstallTools: [string, string][] = [
+  ["cargo-update", "cargo-update"],
+  ["rg", "ripgrep"],
+  ["atuin", "atuin"],
+  ["zellij", "zellij"],
+  ["fnm", "fnm"],
+  ["just", "just"],
+];
+
+for (const [cmd, pkg] of cargoBinstallTools) {
+  if (await installed(cmd)) {
+    console.log(`skip: ${cmd} already installed`);
+  } else {
+    console.log(`==> Installing ${cmd}`);
+    await run("cargo", ["binstall", pkg]);
   }
 }
 

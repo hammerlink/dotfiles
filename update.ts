@@ -43,6 +43,13 @@ const updaters: {
   check?: () => Promise<CheckResult>;
   update: () => Promise<void>;
 }[] = [
+  {
+    name: "cargo-tools",
+    update: async () => {
+      console.log("==> Updating all cargo-installed tools");
+      await $`cargo install-update -a`;
+    },
+  },
   (() => {
     type Release = {
       tag_name: string;
