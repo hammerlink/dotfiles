@@ -271,4 +271,41 @@ for await (const entry of Deno.readDir(dotfilesConfig)) {
   }
 }
 
+// ── opencode plugins ─────────────────────────────────────────────────
+
+const opencodeTarget = join(targetConfig, "opencode");
+const opencodePkg = join(opencodeTarget, "package.json");
+let opencodeNeedsInstall = false;
+try {
+  await Deno.lstat(opencodePkg);
+  opencodeNeedsInstall = true;
+} catch {
+  // no package.json, skip
+}
+
+if (opencodeNeedsInstall) {
+  const nodeModules = join(opencodeTarget, "node_modules");
+  let modulesExist = false;
+  try {
+    await Deno.lstat(nodeModules);
+    modulesExist = true;
+  } catch {
+    // does not exist
+  }
+  if (modulesExist) {
+    console.log("skip: opencode plugins already installed");
+  } else {
+    console.log("==> Installing opencode plugins");
+    const { success } = await new Deno.Command("npm", {
+      args: ["install"],
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+      env: getEnv(),
+      cwd: opencodeTarget,
+    }).output();
+    if (!success) throw new Error("npm install failed for opencode plugins");
+  }
+}
+
 console.log("\nDone. Make sure ~/.local/bin is in your PATH for nvim.");

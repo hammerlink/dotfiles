@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["opencode-with-claude"],
+  "provider": {
+    "hammerllm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "HammerLLM",
+      "options": {
+        "baseURL": "http://hammertower:8080/v1",
+        "apiKey": ""
+      },
+      "models": {
+        "hammerllm-active": {
+          "name": "Local",
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
+        }
+      }
+    }
+  }
+}

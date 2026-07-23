@@ -216,6 +216,27 @@ const updaters: {
       await runScript("https://opencode.ai/install", [], "bash");
     },
   },
+  {
+    name: "opencode-plugins",
+    check: async (): Promise<CheckResult> => {
+      const pkgPath = join(HOME, ".config", "opencode", "package.json");
+      try {
+        const pkg = JSON.parse(await Deno.readTextFile(pkgPath));
+        const pluginDeps = Object.keys(pkg.dependencies ?? {});
+        if (pluginDeps.length === 0) return { upToDate: true };
+
+        const out = await $`npm outdated --json --prefix ${join(HOME, ".config", "opencode")}`.text().catch(() => "");
+        const outdated = out.trim();
+        return { upToDate: !outdated || outdated === "{}" };
+      } catch {
+        return { upToDate: true };
+      }
+    },
+    update: async () => {
+      console.log("==> Updating opencode plugins");
+      await $`npm update --prefix ${join(HOME, ".config", "opencode")}`;
+    },
+  },
 ];
 
 const [first, ...rest] = Deno.args;
