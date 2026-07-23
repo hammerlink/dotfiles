@@ -94,10 +94,8 @@ const updaters: {
   {
     name: "rust",
     check: async (): Promise<CheckResult> => {
-      const out = await $`rustup check`.text().catch(() => "");
-      const upToDate = !out
-        .split("\n")
-        .some((l: string) => l.includes("Update available"));
+      const out = await $`rustup check`.noThrow().text();
+      const upToDate = !out.match(/update available/i);
       return { upToDate };
     },
     update: async () => {
@@ -243,7 +241,10 @@ const updaters: {
         const pluginDeps = Object.keys(pkg.dependencies ?? {});
         if (pluginDeps.length === 0) return { upToDate: true };
 
-        const out = await $`npm outdated --json --prefix ${join(HOME, ".config", "opencode")}`.text().catch(() => "");
+        const out =
+          await $`npm outdated --json --prefix ${join(HOME, ".config", "opencode")}`
+            .text()
+            .catch(() => "");
         const outdated = out.trim();
         return { upToDate: !outdated || outdated === "{}" };
       } catch {
