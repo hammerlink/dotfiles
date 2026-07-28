@@ -6,7 +6,7 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "HammerLLM",
       "options": {
-        "baseURL": "http://hammertower:8080/v1",
+        "baseURL": "https://hammertower:8080/v1",
         "apiKey": ""
       },
       "models": {
