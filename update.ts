@@ -11,16 +11,6 @@ const $ = build$({
     builder.env(`PATH`, [...extraPaths, Deno.env.get("PATH") ?? ""].join(":")),
 });
 
-async function runScript(
-  url: string,
-  args: string[] = [],
-  interpreter = "sh",
-): Promise<void> {
-  const script = await fetch(url).then((r) => r.text());
-  // deno-lint-ignore no-explicit-any
-  await $`${interpreter} ${args}`.stdin(script as any);
-}
-
 async function githubLatest(repo: string): Promise<string> {
   const r = await fetch(
     `https://api.github.com/repos/${repo}/releases/latest`,
@@ -236,7 +226,7 @@ const updaters: {
     },
     update: async () => {
       console.log("==> Updating opencode");
-      await runScript("https://opencode.ai/install", [], "bash");
+      await $`opencode upgrade`;
     },
   },
   {
