@@ -6,14 +6,14 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "HammerLLM",
       "options": {
-        "baseURL": "https://hammertower:8080/v1",
+        "baseURL": "https://tower.hammernet:8080/v1",
         "apiKey": ""
       },
       "models": {
         "hammerllm-active": {
           "name": "Local",
           "limit": {
-            "context": 65536,
+            "context": 262144,
             "output": 8192
           }
         }
