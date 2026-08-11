@@ -286,6 +286,37 @@ for await (const entry of Deno.readDir(dotfilesConfig)) {
   }
 }
 
+// ── link agents skills ───────────────────────────────────────────────────────
+
+const dotfilesSkills = join(SCRIPT_DIR, ".agents", "skills");
+const targetAgentsSkills = join(HOME, ".agents", "skills");
+
+await Deno.mkdir(join(HOME, ".agents"), { recursive: true });
+
+let agentsSkillsExists = false;
+try {
+  await Deno.lstat(targetAgentsSkills);
+  agentsSkillsExists = true;
+} catch {
+  // does not exist
+}
+
+if (agentsSkillsExists) {
+  const answer = prompt(
+    `already exists: ${targetAgentsSkills} — delete and relink? [y/N]`,
+  );
+  if (answer?.toLowerCase() === "y") {
+    await Deno.remove(targetAgentsSkills, { recursive: true });
+    await Deno.symlink(dotfilesSkills, targetAgentsSkills);
+    console.log(`linked: ${targetAgentsSkills} -> ${dotfilesSkills}`);
+  } else {
+    console.log(`skipped: ${targetAgentsSkills}`);
+  }
+} else {
+  await Deno.symlink(dotfilesSkills, targetAgentsSkills);
+  console.log(`linked: ${targetAgentsSkills} -> ${dotfilesSkills}`);
+}
+
 // ── opencode plugins ─────────────────────────────────────────────────
 
 const opencodeTarget = join(targetConfig, "opencode");
