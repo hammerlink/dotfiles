@@ -356,16 +356,19 @@ if (opencodeNeedsInstall) {
 
 // ── TLS certificate ──────────────────────────────────────────────────────────
 
-const certSrc = join(SCRIPT_DIR, "certs", "hammerserver.crt");
-const certDest = "/usr/local/share/ca-certificates/hammerserver.crt";
+const certs = ["hammer_root_ca.crt"];
+for (const cert of certs) {
+  const certSrc = join(SCRIPT_DIR, "certs", cert);
+  const certDest = `/usr/local/share/ca-certificates/${cert}`;
 
-try {
-  await Deno.lstat(certSrc);
-  console.log("==> Installing TLS certificate");
-  await run("sudo", ["cp", certSrc, certDest]);
-  await run("sudo", ["update-ca-certificates"]);
-} catch {
-  console.log("skip: no certificate found");
+  try {
+    await Deno.lstat(certSrc);
+    console.log("==> Installing TLS certificate");
+    await run("sudo", ["cp", certSrc, certDest]);
+  } catch (err) {
+    console.log("skip: no certificate found", err);
+  }
 }
+await run("sudo", ["update-ca-certificates"]);
 
 console.log("\nDone. Make sure ~/.local/bin is in your PATH for nvim.");
