@@ -137,16 +137,43 @@ extraPaths.push(join(HOME, ".cargo", "bin"));
 
 // ── cargo tools ──────────────────────────────────────────────────────────────
 
-const cargoInstallTools: [string, string, string[]][] = [
-  ["cargo-binstall", "cargo-binstall", ["--locked"]],
-];
+const CARGO_BINSTALL_VERSION = "v1.22.0";
+const CARGO_BINSTALL_ASSET =
+  `https://github.com/cargo-bins/cargo-binstall/releases/download/${CARGO_BINSTALL_VERSION}/cargo-binstall-x86_64-unknown-linux-musl.tgz`;
 
-for (const [cmd, pkg, flags] of cargoInstallTools) {
-  if (await installed(cmd)) {
-    console.log(`skip: ${cmd} already installed`);
-  } else {
-    console.log(`==> Installing ${cmd}`);
-    await run("cargo", ["install", ...flags, pkg]);
+async function installCargoBinstall(): Promise<void> {
+  const cargoBinDir = join(HOME, ".cargo", "bin");
+  await Deno.mkdir(cargoBinDir, { recursive: true });
+  const tmpDir = await Deno.makeTempDir();
+  try {
+    const tgzPath = join(tmpDir, "cargo-binstall.tgz");
+    const bytes = await fetch(CARGO_BINSTALL_ASSET).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.arrayBuffer();
+    });
+    await Deno.writeFile(tgzPath, new Uint8Array(bytes));
+    await run("tar", ["xzf", tgzPath, "-C", tmpDir]);
+    const src = join(tmpDir, "cargo-binstall");
+    const dest = join(cargoBinDir, "cargo-binstall");
+    await Deno.copyFile(src, dest);
+    await Deno.chmod(dest, 0o755);
+  } finally {
+    await Deno.remove(tmpDir, { recursive: true });
+  }
+}
+
+if (await installed("cargo-binstall")) {
+  console.log("skip: cargo-binstall already installed");
+} else if (Deno.build.arch !== "x86_64") {
+  console.log(`==> Installing cargo-binstall (cargo, non-x86_64 arch)`);
+  await run("cargo", ["install", "--locked", "cargo-binstall"]);
+} else {
+  console.log(`==> Installing cargo-binstall ${CARGO_BINSTALL_VERSION} (prebuilt)`);
+  try {
+    await installCargoBinstall();
+  } catch (e) {
+    console.log(`download failed (${e}); falling back to cargo install`);
+    await run("cargo", ["install", "--locked", "cargo-binstall"]);
   }
 }
 
