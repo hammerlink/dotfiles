@@ -4,7 +4,7 @@ export const pkg: PackageDef = {
   name: "apt-packages",
   check: async () => {
     const missing: string[] = [];
-    for (const p of ["unzip", "python3"]) {
+    for (const p of ["fish", "unzip", "python3"]) {
       if (!(await which(p))) missing.push(p);
     }
     if (!missing.length) return { upToDate: true, installed: "apt" };
@@ -12,7 +12,7 @@ export const pkg: PackageDef = {
   },
   ensure: async () => {
     const needed: string[] = [];
-    for (const p of ["unzip", "python3"]) {
+    for (const p of ["fish", "unzip", "python3"]) {
       if (!(await which(p))) needed.push(p);
     }
     if (!(await capture("python3", ["-m", "pip", "--version"]))) {

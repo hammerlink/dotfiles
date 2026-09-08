@@ -1,6 +1,5 @@
 import { join } from "@std/path";
 import {
-  $,
   DOTFILES_CONFIG,
   ensureSymlink,
   HOME,
@@ -16,7 +15,12 @@ export const pkg: PackageDef = {
   ensure: async () => {
     if (!(await which("fish"))) {
       console.log("==> Installing fish");
-      await $`cargo binstall just`;
+      const { success } = await new Deno.Command("sudo", {
+        args: ["apt-get", "install", "-y", "fish"],
+        stdout: "inherit",
+        stderr: "inherit",
+      }).output();
+      if (!success) throw new Error("failed to install fish");
     } else {
       console.log("skip: fish already installed");
     }
