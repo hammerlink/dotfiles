@@ -8,4 +8,8 @@ else
   curl -fsSL https://deno.land/install.sh | sh
 fi
 
-exec "$HOME/.deno/bin/deno" run --allow-all "$(dirname "$0")/install.ts"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"$HOME/.deno/bin/deno" install -g -n hup --allow-all --config "$SCRIPT_DIR/hup/deno.json" "$SCRIPT_DIR/hup/mod.ts"
+
+exec "$HOME/.deno/bin/deno" run --allow-all "$SCRIPT_DIR/install.ts"
