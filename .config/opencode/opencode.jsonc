@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["opencode-with-claude"],
+  "plugin": [],
   "provider": {
     "hammerllm": {
       "npm": "@ai-sdk/openai-compatible",
