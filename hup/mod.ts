@@ -1,25 +1,39 @@
 #!/usr/bin/env -S deno run --allow-all
 
 import { join } from "@std/path";
-import { $, updaters } from "./updaters.ts";
+import {
+  type CheckResult,
+  DOTFILES_CONFIG,
+  ensureSymlink,
+  HOME,
+  multiSelectNames,
+  type PackageDef,
+  topoSort,
+} from "./core.ts";
+import { packages } from "./packages/index.ts";
+import { setups } from "./setup.ts";
 
-const HOME = Deno.env.get("HOME")!;
 const CONFIG_PATH = join(HOME, ".config", "hup", "config.json");
 
+type PkgConfig = { enabled?: boolean; linked?: boolean };
 type Config = {
-  packages?: Record<string, boolean>;
+  packages?: Record<string, PkgConfig>;
+  setup?: Record<string, boolean>;
 };
 
 function help() {
   console.log(`hup — hammer update
-Keep your desired packages up to date on this machine.
+Keep your desired packages and machine setup in sync on this machine.
 
 Usage:
-  hup                 Update all enabled packages (first run: interactive config)
-  hup -p <name>...    Update specific packages (bypasses config)
+  hup                 Ensure + update all enabled packages (fresh run: interactive setup & config)
+  hup -p <name>...    Ensure + update specific packages (bypasses config)
   hup <name>...       Same as -p, positional shorthand
-  hup list            List available packages and their state
-  hup config          Interactively toggle which packages are kept up to date
+  hup list            List packages and setup tasks with their state
+  hup config          Interactively toggle which packages are enabled
+  hup config list     List packages and their state
+  hup setup           Interactively select + apply machine setup tasks
+  hup setup list      List setup tasks and their state
   hup --help, -h      Show this help
 
 Config: ${CONFIG_PATH}`);
@@ -42,64 +56,136 @@ async function configExists(): Promise<boolean> {
   }
 }
 
-function isEnabled(config: Config, name: string): boolean {
-  return config.packages?.[name] !== false;
-}
-
-async function saveConfig(selectedNames: Set<string>) {
-  const packages: Record<string, boolean> = {};
-  for (const u of updaters) packages[u.name] = selectedNames.has(u.name);
+async function saveConfig(config: Config): Promise<void> {
   await Deno.mkdir(join(HOME, ".config", "hup"), { recursive: true });
   await Deno.writeTextFile(
     CONFIG_PATH,
-    JSON.stringify({ packages }, null, 2) + "\n",
+    JSON.stringify(config, null, 2) + "\n",
   );
 }
 
-async function interactiveConfig(): Promise<Set<string>> {
-  const config = await loadConfig();
-  const selected = await $.multiSelect({
-    message: "Select packages to keep up to date:",
-    options: updaters.map((u) => ({
-      text: u.name,
-      selected: isEnabled(config, u.name),
-    })),
-  });
-  const names = new Set(selected.map((s) => s.value));
-  await saveConfig(names);
-  console.log(`\nSaved config to ${CONFIG_PATH}`);
-  return names;
+function pkgEnabled(config: Config, name: string): boolean {
+  return config.packages?.[name]?.enabled !== false;
 }
 
-async function runUpdaters(selected: typeof updaters) {
-  for (const u of selected) {
-    if (u.check) {
-      const { upToDate, installed, latest } = await u.check();
-      if (upToDate) {
-        console.log(
-          `skip: ${u.name} is up to date${installed ? ` (${installed})` : ""}`,
-        );
-        continue;
-      }
-      if (installed && latest) {
-        console.log(`==> ${u.name}: ${installed} -> ${latest}`);
-      }
-    }
-    await u.update();
+function setupEnabled(config: Config, name: string): boolean {
+  return config.setup?.[name] !== false;
+}
+
+async function checkPkg(p: PackageDef): Promise<CheckResult> {
+  if (!p.check) return { upToDate: true };
+  try {
+    return await p.check();
+  } catch {
+    return { upToDate: false };
   }
-  console.log("\nDone.");
 }
 
-function resolveNames(names: string[]) {
+function describeLink(p: PackageDef, config: Config): string {
+  if (!p.configDir) return "";
+  const linked = config.packages?.[p.name]?.linked;
+  if (linked === true) return " [linked]";
+  if (linked === false) return " [not linked]";
+  return " [link?]";
+}
+
+async function runPkg(p: PackageDef, config: Config): Promise<void> {
+  const res = await checkPkg(p);
+  if (res.upToDate) {
+    console.log(
+      `skip: ${p.name} is up to date${
+        res.installed ? ` (${res.installed})` : ""
+      }`,
+    );
+    return;
+  }
+  if (res.installed && res.latest) {
+    console.log(`==> ${p.name}: ${res.installed} -> ${res.latest}`);
+  } else {
+    console.log(`==> ${p.name}`);
+  }
+  await p.ensure();
+  if (p.configDir) {
+    const ok = await ensureSymlink(
+      join(DOTFILES_CONFIG, p.configDir),
+      join(HOME, ".config", p.configDir),
+      `${p.name} config`,
+    );
+    config.packages ??= {};
+    config.packages[p.name] ??= {};
+    config.packages[p.name].linked = ok;
+  }
+}
+
+async function runSetup(s: PackageDef): Promise<void> {
+  const res = await checkPkg(s);
+  if (res.upToDate) {
+    console.log(`skip: ${s.name} already done`);
+    return;
+  }
+  console.log(`==> ${s.name}`);
+  await s.ensure();
+}
+
+async function interactiveConfig(config: Config): Promise<void> {
+  const selected = await multiSelectNames(
+    "Select packages to keep up to date:",
+    packages.map((p) => ({
+      name: p.name,
+      selected: pkgEnabled(config, p.name),
+    })),
+  );
+  config.packages ??= {};
+  for (const p of packages) {
+    const entry: PkgConfig = config.packages[p.name] ?? {};
+    entry.enabled = selected.has(p.name);
+    if (p.configDir && entry.linked === undefined) entry.linked = false;
+    config.packages[p.name] = entry;
+  }
+  await saveConfig(config);
+  console.log(`\nSaved config to ${CONFIG_PATH}`);
+}
+
+async function interactiveSetup(config: Config): Promise<Set<string>> {
+  const selected = await multiSelectNames(
+    "Select machine setup tasks to apply:",
+    setups.map((s) => ({
+      name: s.name,
+      selected: setupEnabled(config, s.name),
+    })),
+  );
+  config.setup ??= {};
+  for (const s of setups) config.setup[s.name] = selected.has(s.name);
+  await saveConfig(config);
+  console.log(`\nSaved config to ${CONFIG_PATH}`);
+  return selected;
+}
+
+function resolvePackages(names: string[]): PackageDef[] {
   return names.map((name) => {
-    const u = updaters.find((u) => u.name === name);
-    if (!u) {
+    const p = packages.find((p) => p.name === name);
+    if (!p) {
       console.error(`Unknown package: ${name}`);
       console.error('Run "hup list" to see available packages.');
       Deno.exit(1);
     }
-    return u;
+    return p;
   });
+}
+
+function listPackages(config: Config): void {
+  console.log("Packages:");
+  for (const p of packages) {
+    const mark = pkgEnabled(config, p.name) ? "x" : " ";
+    console.log(`  [${mark}] ${p.name}${describeLink(p, config)}`);
+  }
+}
+
+function listSetups(): void {
+  console.log("Setup tasks:");
+  for (const s of setups) {
+    console.log(`  - ${s.name}`);
+  }
 }
 
 const args = Deno.args;
@@ -109,21 +195,40 @@ if (args.includes("--help") || args.includes("-h")) {
   Deno.exit(0);
 }
 
-if (args[0] === "list") {
+const [cmd, sub] = args;
+
+if (cmd === "list") {
   const config = await loadConfig();
-  console.log("Updatable packages:");
-  for (const u of updaters) {
-    const mark = isEnabled(config, u.name) ? "x" : " ";
-    console.log(`  [${mark}] ${u.name}`);
+  listPackages(config);
+  console.log("");
+  listSetups();
+  Deno.exit(0);
+}
+
+if (cmd === "config") {
+  if (sub === "list") {
+    listPackages(await loadConfig());
+    Deno.exit(0);
   }
+  await interactiveConfig(await loadConfig());
   Deno.exit(0);
 }
 
-if (args[0] === "config") {
-  await interactiveConfig();
+if (cmd === "setup") {
+  if (sub === "list") {
+    listSetups();
+    Deno.exit(0);
+  }
+  const config = await loadConfig();
+  const selected = await interactiveSetup(config);
+  for (const s of topoSort(setups.filter((s) => selected.has(s.name)))) {
+    await runSetup(s);
+  }
+  console.log("\nDone.");
   Deno.exit(0);
 }
 
+// positional / -p selection
 const positional: string[] = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "-p") {
@@ -140,30 +245,48 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (positional.length > 0) {
-  await runUpdaters(resolveNames(positional));
+  const config = await loadConfig();
+  for (const p of topoSort(resolvePackages(positional))) {
+    await runPkg(p, config);
+  }
+  if (Object.keys(config.packages ?? {}).length) await saveConfig(config);
+  console.log("\nDone.");
   Deno.exit(0);
 }
 
-let enabled: Set<string>;
-if (!(await configExists())) {
+// default: fresh-machine detection
+const config = await loadConfig();
+const hasPackages = Object.keys(config.packages ?? {}).length > 0;
+if (!(await configExists()) || !hasPackages) {
   console.log("No config found, setting up...\n");
-  enabled = await interactiveConfig();
-} else {
-  const config = await loadConfig();
-  const unknown = Object.keys(config.packages ?? {}).filter(
-    (name) => !updaters.some((u) => u.name === name),
-  );
-  for (const name of unknown) {
-    console.warn(`warning: unknown package in config: ${name}`);
+  const setupSel = await interactiveSetup(config);
+  await interactiveConfig(config);
+  for (const s of topoSort(setups.filter((s) => setupSel.has(s.name)))) {
+    await runSetup(s);
   }
-  enabled = new Set(
-    updaters.filter((u) => isEnabled(config, u.name)).map((u) => u.name),
+} else {
+  const unknownPkg = Object.keys(config.packages ?? {}).filter(
+    (n) => !packages.some((p) => p.name === n),
   );
+  for (const n of unknownPkg) {
+    console.warn(`warning: unknown package in config: ${n}`);
+  }
+  const unknownSetup = Object.keys(config.setup ?? {}).filter(
+    (n) => !setups.some((s) => s.name === n),
+  );
+  for (const n of unknownSetup) {
+    console.warn(`warning: unknown setup in config: ${n}`);
+  }
 }
 
-if (enabled.size === 0) {
+const enabled = packages.filter((p) => pkgEnabled(config, p.name));
+if (enabled.length === 0) {
   console.log('No packages enabled. Run "hup config" to enable some.');
   Deno.exit(0);
 }
 
-await runUpdaters(updaters.filter((u) => enabled.has(u.name)));
+for (const p of topoSort(enabled)) {
+  await runPkg(p, config);
+}
+await saveConfig(config);
+console.log("\nDone.");
