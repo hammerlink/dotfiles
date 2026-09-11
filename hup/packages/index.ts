@@ -22,6 +22,7 @@ export const packages: PackageDef[] = [
   alacritty,
   nvim,
   rust,
+  cargoTools,
   cargoBinstall,
   rg,
   atuin,
@@ -32,5 +33,4 @@ export const packages: PackageDef[] = [
   deno,
   opencode,
   nix,
-  cargoTools,
 ];

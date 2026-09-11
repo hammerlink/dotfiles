@@ -40,6 +40,10 @@ export function stripV(v: string): string {
 export async function which(cmd: string): Promise<boolean> {
   const { success } = await new Deno.Command("which", {
     args: [cmd],
+    env: {
+      PATH: [...extraPaths, Deno.env.get("PATH") ?? ""].join(":"),
+    },
+    clearEnv: true,
     stdout: "null",
     stderr: "null",
   }).output();
