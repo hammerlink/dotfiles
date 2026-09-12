@@ -2,6 +2,8 @@
 
 import { join } from "@std/path";
 import {
+  $,
+  type ActionDef,
   type CheckResult,
   DOTFILES_CONFIG,
   ensureSymlink,
@@ -9,8 +11,10 @@ import {
   multiSelectNames,
   type PackageDef,
   topoSort,
+  which,
 } from "./core.ts";
-import { packages } from "./packages/index.ts";
+import { configs } from "./configs.ts";
+import { actions, packages } from "./packages/index.ts";
 import { setups } from "./setup.ts";
 
 const CONFIG_PATH = join(HOME, ".config", "hup", "config.json");
@@ -72,7 +76,9 @@ function setupEnabled(config: Config, name: string): boolean {
   return config.setup?.[name] !== false;
 }
 
-async function checkPkg(p: PackageDef): Promise<CheckResult> {
+async function checkPkg(
+  p: Extract<PackageDef, { kind: "package" }>,
+): Promise<CheckResult> {
   if (!p.check) return { upToDate: true };
   try {
     return await p.check();
@@ -82,14 +88,30 @@ async function checkPkg(p: PackageDef): Promise<CheckResult> {
 }
 
 function describeLink(p: PackageDef, config: Config): string {
-  if (!p.configDir) return "";
+  const out = p.kind === "cargo-package" ? " [cargo]" : "";
+  if (!configs.some((c) => c.name === p.name)) return out;
   const linked = config.packages?.[p.name]?.linked;
+  if (linked === true) return out + " [linked]";
+  if (linked === false) return out + " [not linked]";
+  return out + " [link?]";
+}
+
+function linkMarker(config: Config, name: string): string {
+  const linked = config.packages?.[name]?.linked;
   if (linked === true) return " [linked]";
   if (linked === false) return " [not linked]";
   return " [link?]";
 }
 
-async function runPkg(p: PackageDef, config: Config): Promise<void> {
+async function runPkg(p: PackageDef): Promise<void> {
+  if (p.kind === "cargo-package") {
+    const bin = p.binary ?? p.name;
+    if (!(await which(bin))) {
+      console.log(`==> Installing ${bin} (cargo binstall)`);
+      await $`cargo binstall ${p.tool ?? bin}`;
+    }
+    return;
+  }
   const res = await checkPkg(p);
   if (res.upToDate) {
     console.log(
@@ -105,19 +127,31 @@ async function runPkg(p: PackageDef, config: Config): Promise<void> {
     console.log(`==> ${p.name}`);
   }
   await p.ensure();
-  if (p.configDir) {
+}
+
+async function runConfigs(config: Config): Promise<void> {
+  for (const c of configs) {
+    if (!pkgEnabled(config, c.name)) continue;
+    const dir = c.dir ?? c.name;
     const ok = await ensureSymlink(
-      join(DOTFILES_CONFIG, p.configDir),
-      join(HOME, ".config", p.configDir),
-      `${p.name} config`,
+      join(DOTFILES_CONFIG, dir),
+      join(HOME, ".config", dir),
+      `${c.name} config`,
     );
     config.packages ??= {};
-    config.packages[p.name] ??= {};
-    config.packages[p.name].linked = ok;
+    config.packages[c.name] ??= {};
+    config.packages[c.name].linked = ok;
   }
 }
 
-async function runSetup(s: PackageDef): Promise<void> {
+async function runAction(a: ActionDef): Promise<void> {
+  console.log(`==> ${a.name}`);
+  await a.run();
+}
+
+async function runSetup(
+  s: Extract<PackageDef, { kind: "package" }>,
+): Promise<void> {
   const res = await checkPkg(s);
   if (res.upToDate) {
     console.log(`skip: ${s.name} already done`);
@@ -129,18 +163,29 @@ async function runSetup(s: PackageDef): Promise<void> {
 
 async function interactiveConfig(config: Config): Promise<void> {
   const selected = await multiSelectNames(
-    "Select packages to keep up to date:",
-    packages.map((p) => ({
-      name: p.name,
-      selected: pkgEnabled(config, p.name),
-    })),
+    "Select packages and configs to keep in sync:",
+    [
+      ...packages.map((p) => ({
+        name: p.name,
+        selected: pkgEnabled(config, p.name),
+      })),
+      ...configs.map((c) => ({
+        name: c.name,
+        selected: pkgEnabled(config, c.name),
+      })),
+    ],
   );
   config.packages ??= {};
   for (const p of packages) {
     const entry: PkgConfig = config.packages[p.name] ?? {};
     entry.enabled = selected.has(p.name);
-    if (p.configDir && entry.linked === undefined) entry.linked = false;
     config.packages[p.name] = entry;
+  }
+  for (const c of configs) {
+    const entry: PkgConfig = config.packages[c.name] ?? {};
+    entry.enabled = selected.has(c.name);
+    if (entry.linked === undefined) entry.linked = false;
+    config.packages[c.name] = entry;
   }
   await saveConfig(config);
   console.log(`\nSaved config to ${CONFIG_PATH}`);
@@ -181,6 +226,21 @@ function listPackages(config: Config): void {
   }
 }
 
+function listConfigs(config: Config): void {
+  console.log("Configs:");
+  for (const c of configs) {
+    const mark = pkgEnabled(config, c.name) ? "x" : " ";
+    console.log(`  [${mark}] ${c.name}${linkMarker(config, c.name)}`);
+  }
+}
+
+function listActions(): void {
+  console.log("Actions:");
+  for (const a of actions) {
+    console.log(`  - ${a.name}`);
+  }
+}
+
 function listSetups(): void {
   console.log("Setup tasks:");
   for (const s of setups) {
@@ -200,6 +260,10 @@ const [cmd, sub] = args;
 if (cmd === "list") {
   const config = await loadConfig();
   listPackages(config);
+  console.log("");
+  listConfigs(config);
+  console.log("");
+  listActions();
   console.log("");
   listSetups();
   Deno.exit(0);
@@ -247,8 +311,9 @@ for (let i = 0; i < args.length; i++) {
 if (positional.length > 0) {
   const config = await loadConfig();
   for (const p of topoSort(resolvePackages(positional))) {
-    await runPkg(p, config);
+    await runPkg(p);
   }
+  await runConfigs(config);
   if (Object.keys(config.packages ?? {}).length) await saveConfig(config);
   console.log("\nDone.");
   Deno.exit(0);
@@ -265,8 +330,12 @@ if (!(await configExists()) || !hasPackages) {
     await runSetup(s);
   }
 } else {
+  const knownNames = new Set([
+    ...packages.map((p) => p.name),
+    ...configs.map((c) => c.name),
+  ]);
   const unknownPkg = Object.keys(config.packages ?? {}).filter(
-    (n) => !packages.some((p) => p.name === n),
+    (n) => !knownNames.has(n),
   );
   for (const n of unknownPkg) {
     console.warn(`warning: unknown package in config: ${n}`);
@@ -286,7 +355,11 @@ if (enabled.length === 0) {
 }
 
 for (const p of topoSort(enabled)) {
-  await runPkg(p, config);
+  await runPkg(p);
 }
+for (const a of topoSort(actions)) {
+  await runAction(a);
+}
+await runConfigs(config);
 await saveConfig(config);
 console.log("\nDone.");

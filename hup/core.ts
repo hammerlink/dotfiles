@@ -18,12 +18,31 @@ export type CheckResult = {
   latest?: string;
 };
 
-export type PackageDef = {
+export type PackageDef =
+  | {
+    kind: "package";
+    name: string;
+    dependsOn?: string[];
+    check?: () => Promise<CheckResult>;
+    ensure: () => Promise<void>;
+  }
+  | {
+    kind: "cargo-package";
+    name: string;
+    dependsOn?: string[];
+    binary?: string;
+    tool?: string;
+  };
+
+export type ActionDef = {
   name: string;
   dependsOn?: string[];
-  configDir?: string;
-  check?: () => Promise<CheckResult>;
-  ensure: () => Promise<void>;
+  run: () => Promise<void>;
+};
+
+export type ConfigEntry = {
+  name: string;
+  dir?: string;
 };
 
 export async function githubLatest(repo: string): Promise<string> {
