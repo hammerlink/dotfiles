@@ -292,20 +292,23 @@ if (cmd === "setup") {
   Deno.exit(0);
 }
 
-// positional / -p selection
+// positional / -p selection: `-p <name>...` and bare names are equivalent
 const positional: string[] = [];
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === "-p") {
-    const next = args[i + 1];
-    if (!next) {
-      console.error("-p requires a package name");
-      Deno.exit(1);
-    }
-    positional.push(next);
-    i++;
-  } else {
-    positional.push(args[i]);
+let afterFlag = false;
+for (const arg of args) {
+  if (arg === "-p") {
+    afterFlag = true;
+    continue;
   }
+  if (arg.startsWith("-")) {
+    console.error(`Unknown option: ${arg}`);
+    Deno.exit(1);
+  }
+  positional.push(arg);
+}
+if (afterFlag && positional.length === 0) {
+  console.error("-p requires at least one package name");
+  Deno.exit(1);
 }
 
 if (positional.length > 0) {

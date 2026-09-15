@@ -183,5 +183,11 @@ export function topoSort<T extends { name: string; dependsOn?: string[] }>(
       }
     }
   }
+  if (out.length !== items.length) {
+    const unresolved = items.filter((i) => !out.includes(i)).map((i) => i.name);
+    throw new Error(
+      `dependency cycle or missing dependency among: ${unresolved.join(", ")}`,
+    );
+  }
   return out;
 }
