@@ -4,8 +4,9 @@ import { $, capture, HOME, type PackageDef, REPO_ROOT } from "./core.ts";
 const GIT_EMAIL = "hendrik.hamerlinck@hammernet.be";
 const GIT_NAME = "Hendrik Hamerlinck";
 
-export const setups: PackageDef[] = [
+export const setups: Extract<PackageDef, { kind: "package" }>[] = [
   {
+    kind: "package",
     name: "git-config",
     check: async () => {
       const email = await capture("git", ["config", "--global", "user.email"]);
@@ -28,6 +29,7 @@ export const setups: PackageDef[] = [
     },
   },
   {
+    kind: "package",
     name: "default-shell",
     dependsOn: ["fish"],
     check: async () => {
@@ -60,6 +62,7 @@ export const setups: PackageDef[] = [
     },
   },
   {
+    kind: "package",
     name: "agent-skills",
     check: async () => {
       const dest = join(HOME, ".agents", "skills");
@@ -100,6 +103,7 @@ export const setups: PackageDef[] = [
     },
   },
   {
+    kind: "package",
     name: "hammercert",
     check: async () => {
       const dest = "/usr/local/share/ca-certificates/hammer_root_ca.crt";

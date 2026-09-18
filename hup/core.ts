@@ -18,12 +18,31 @@ export type CheckResult = {
   latest?: string;
 };
 
-export type PackageDef = {
+export type PackageDef =
+  | {
+    kind: "package";
+    name: string;
+    dependsOn?: string[];
+    check?: () => Promise<CheckResult>;
+    ensure: () => Promise<void>;
+  }
+  | {
+    kind: "cargo-package";
+    name: string;
+    dependsOn?: string[];
+    binary?: string;
+    tool?: string;
+  };
+
+export type ActionDef = {
   name: string;
   dependsOn?: string[];
-  configDir?: string;
-  check?: () => Promise<CheckResult>;
-  ensure: () => Promise<void>;
+  run: () => Promise<void>;
+};
+
+export type ConfigEntry = {
+  name: string;
+  dir?: string;
 };
 
 export async function githubLatest(repo: string): Promise<string> {
@@ -163,6 +182,12 @@ export function topoSort<T extends { name: string; dependsOn?: string[] }>(
         if (d === 0) queue.push(i.name);
       }
     }
+  }
+  if (out.length !== items.length) {
+    const unresolved = items.filter((i) => !out.includes(i)).map((i) => i.name);
+    throw new Error(
+      `dependency cycle or missing dependency among: ${unresolved.join(", ")}`,
+    );
   }
   return out;
 }
