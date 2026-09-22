@@ -45,6 +45,7 @@ set -g fish_key_bindings fish_vi_key_bindings
 
 function fish_user_key_bindings
     bind -M insert jk 'set fish_bind_mode default; commandline -f repaint'
+    bind -M default gr gr
 end
 
 set -g fish_sequence_key_delay_ms 200
